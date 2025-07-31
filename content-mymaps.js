@@ -108,8 +108,6 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
 
   logger.info(`🎯 Starting processing of ${placesToProcess.length} places from "${storage.listName || 'Unnamed List'}"`);
   
-  console.log('DEBUG: About to create UI panel');
-  
   const typeIcons = {
     "Museum": "🏛️", "Restaurant": "🍽️", "Cafe": "☕", "Park": "🌳",
     "Hotel": "🏨", "Motel": "🏨", "AirBnB": "🏠", "Historical Site": "🏰",
@@ -123,7 +121,7 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
 
   // Create progress panel
   try {
-    console.log('DEBUG: Creating panel element');
+
     const panel = document.createElement("div");
     panel.style = "position:fixed;top:20px;right:20px;width:400px;background:white;border:1px solid #ccc;padding:15px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-height:85vh;overflow-y:auto;font-family:sans-serif;font-size:13px;border-radius:8px;";
 
@@ -154,19 +152,15 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
     `;
 
     panel.appendChild(closeButton);
-    console.log('DEBUG: About to append panel to document.body');
-    document.body.appendChild(panel);
-    console.log('DEBUG: Panel appended successfully');
 
-    console.log('DEBUG: Getting UI elements');
+    document.body.appendChild(panel);
+
+
+
     statusDiv = panel.querySelector('#status');
     progressBar = panel.querySelector('#progressBar');
     resultsDiv = panel.querySelector('#results');
-    console.log('DEBUG: Got UI elements successfully', {
-      hasStatusDiv: !!statusDiv,
-      hasProgressBar: !!progressBar,
-      hasResultsDiv: !!resultsDiv
-    });
+
   } catch (error) {
     console.error('Failed to create UI panel:', error);
   }
@@ -202,10 +196,7 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
   };
 
   const enrichPlace = async (place) => {
-    console.log(`🔄 [enrichPlace] Starting enrichment for "${place.name}"`);
-
     if (!storage.openaiKey) {
-      console.log(`⚠️ [enrichPlace] No OpenAI key available for "${place.name}"`);
       logger.warn('No OpenAI key available, skipping enrichment');
       return { ...place, type: "Unknown", website: "", description: "" };
     }
@@ -216,7 +207,6 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
       
       logger.debug(`Created prompt for "${place.name}"`, { prompt });
 
-      console.log(`📤 [enrichPlace] Preparing OpenAI request for "${place.name}"`);
       const requestBody = {
         model: "gpt-4",
         messages: [
@@ -231,7 +221,6 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
         temperature: 0.7
       };
 
-      console.log(`🌐 [enrichPlace] Making OpenAI API call for "${place.name}"`);
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -240,7 +229,6 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
         },
         body: JSON.stringify(requestBody)
       });
-      console.log(`✅ [enrichPlace] Received OpenAI response for "${place.name}"`);
 
       const result = await response.json();
       const content = result.choices?.[0]?.message?.content || "";
@@ -251,91 +239,27 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
         console.warn(`⚠️ Invalid type "${parsed.type}" returned for "${place.name}"`);
       }
 
-      console.log(`✨ [enrichPlace] Successfully enriched "${place.name}" as type: ${parsed.type}`);
       return { ...place, ...parsed };
     } catch (error) {
-      console.warn(`❌ [enrichPlace] Failed to enrich "${place.name}":`, error);
+      console.warn(`❌ Failed to enrich "${place.name}":`, error);
       return { ...place, type: "Unknown", website: "", description: "" };
     }
   };
 
-  console.log('DEBUG: About to create UI panel');
-  
-  // Create progress panel
-  try {
-    console.log('DEBUG: Creating panel element');
-    const panel = document.createElement("div");
-  panel.style = "position:fixed;top:20px;right:20px;width:400px;background:white;border:1px solid #ccc;padding:15px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-height:85vh;overflow-y:auto;font-family:sans-serif;font-size:13px;border-radius:8px;";
-
-  const closeButton = document.createElement("button");
-  closeButton.innerHTML = "✕";
-  closeButton.style = "position:absolute;top:10px;right:10px;background:none;border:none;font-size:18px;cursor:pointer;color:#666;";
-  closeButton.addEventListener('click', () => panel.remove());
-
-  panel.innerHTML = `
-    <div style="margin-bottom: 15px; padding-right: 20px;">
-      <h3 style='margin:0; color:#1976d2;'>
-        📍 Import Generator: "${storage.listName || 'Saved List'}"
-        ${TESTING_MODE ? '<span style="font-size: 12px; background: #ff9800; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Testing Mode</span>' : ''}
-      </h3>
-    </div>
-    <div style="background: #e3f2fd; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 12px;">
-      <strong>🔄 Processing places...</strong><br>
-      ${TESTING_MODE 
-        ? `Testing AI enrichment with ${TEST_PLACES_LIMIT} places (${allFilteredPlaces.length} total places will be exported).`
-        : `Enriching all ${filteredPlaces.length} places with AI descriptions.`}<br>
-      A KML file will be generated with custom icons and styles for Google My Maps.
-    </div>
-    <div id="progress" style="background: #f5f5f5; height: 20px; border-radius: 10px; overflow: hidden; margin-bottom: 15px;">
-      <div id="progressBar" style="background: #4CAF50; height: 100%; width: 0%; transition: width 0.3s;"></div>
-    </div>
-    <div id="status">Starting...</div>
-    <div id="results" style="margin-top: 15px;"></div>
-  `;
-
-    panel.appendChild(closeButton);
-    console.log('DEBUG: About to append panel to document.body');
-    document.body.appendChild(panel);
-    console.log('DEBUG: Panel appended successfully');
-  } catch (error) {
-    console.error('Failed to create UI panel:', error);
-  }
-
-  console.log('DEBUG: Getting UI elements');
-  try {
-    const statusDiv = panel.querySelector('#status');
-    const progressBar = panel.querySelector('#progressBar');
-    const resultsDiv = panel.querySelector('#results');
-    console.log('DEBUG: Got UI elements successfully', {
-      hasStatusDiv: !!statusDiv,
-      hasProgressBar: !!progressBar,
-      hasResultsDiv: !!resultsDiv
-    });
-
   // Process places in parallel with concurrency limit
-  const CONCURRENT_LIMIT = 5; // Maximum number of parallel API calls
   const enrichedPlaces = [];
   let processedCount = 0;
 
   // Helper function to update progress
   const updateProgress = (place) => {
     processedCount++;
-    const progress = (processedCount / filteredPlaces.length) * 100;
+    const progress = (processedCount / placesToProcess.length) * 100;
     progressBar.style.width = progress + '%';
-    statusDiv.innerHTML = `Processing ${processedCount}/${filteredPlaces.length}: <strong>${place.name}</strong>`;
+    statusDiv.innerHTML = `Processing ${processedCount}/${placesToProcess.length}: <strong>${place.name}</strong>`;
   };
-
-  console.log('CHECKPOINT 1: Before batch processing');
-  debugger; // Force debugger to pause here
 
   // Initialize tracking variables
   let totalProcessed = 0;
-
-  console.log('CHECKPOINT 2: Variables initialized', {
-    placesToProcess: placesToProcess.length,
-    openaiKey: !!storage.openaiKey,
-    descriptionLang: storage.descriptionLang
-  });
 
   logger.info('🔍 Current state:', {
     placesToProcess: placesToProcess.length,
@@ -347,10 +271,7 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
   try {
     logger.info('🚀 Starting place enrichment process');
 
-    console.log('CHECKPOINT 3: About to start batch loop');
-    debugger; // Force debugger to pause here
     for (let i = 0; i < placesToProcess.length; i += CONFIG.processing.concurrentLimit) {
-      console.log('CHECKPOINT 4: Starting batch iteration', { i, batchSize: CONFIG.processing.concurrentLimit });
       const batch = placesToProcess.slice(i, i + CONFIG.processing.concurrentLimit);
       const batchNumber = Math.floor(i/CONFIG.processing.concurrentLimit) + 1;
       const totalBatches = Math.ceil(placesToProcess.length/CONFIG.processing.concurrentLimit);
@@ -365,14 +286,8 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
       
       logger.info(`🔄 Processing batch ${batchNumber}/${totalBatches} (places ${i + 1}-${i + batch.length} of ${placesToProcess.length})`);
       
-      console.log('CHECKPOINT 5: About to process batch', { 
-        batchNumber, 
-        places: batch.map(p => p.name)
-      });
-
       const batchPromises = batch.map(async (place, index) => {
         try {
-          console.log(`CHECKPOINT 6: Processing place "${place.name}"`);
           const enriched = await enrichPlace(place);
           totalProcessed++;
           
@@ -396,18 +311,13 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
         }
       });
 
-      console.log('CHECKPOINT 7: Waiting for batch promises');
       const batchResults = await Promise.all(batchPromises);
-      console.log('CHECKPOINT 8: Batch completed', { 
-        batchNumber, 
-        resultsCount: batchResults.length 
-      });
       enrichedPlaces.push(...batchResults);
       
       logger.info(`✅ Completed batch ${batchNumber}/${totalBatches} (${totalProcessed} places processed)`);
       
       // Small delay between batches to avoid rate limiting
-      if (i + CONCURRENT_LIMIT < filteredPlaces.length) {
+      if (i + CONFIG.processing.concurrentLimit < placesToProcess.length) {
         logger.debug(`Waiting ${CONFIG.processing.delayBetweenBatches}ms before next batch...`);
         await new Promise(resolve => setTimeout(resolve, CONFIG.processing.delayBetweenBatches));
       }
@@ -431,8 +341,8 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
   }
 
   // Add remaining places without AI enrichment if in testing mode
-  if (TESTING_MODE) {
-    const remainingPlaces = allFilteredPlaces.slice(TEST_PLACES_LIMIT);
+  if (CONFIG.testing.enabled) {
+    const remainingPlaces = allFilteredPlaces.slice(CONFIG.testing.placesLimit);
     for (const place of remainingPlaces) {
       enrichedPlaces.push({
         ...place,
@@ -562,27 +472,23 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
   };
 
   // Generate KML header with styles
-  //console.log('\n📄 Generating KML styles:');
-  //console.log('  → Adding default style');
-  //console.log('  → Adding historical style');
-  
+
   const typeStylesXML = Object.values(typeStyles).map(style => {
-    //console.log(`  → Adding type style: ${style.id}`);
     return generateStyleXML(style);
   }).join('\n');
   
   const kmlHeader = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>${listName || 'Saved Places'}</name>
+    <name>${storage.listName || 'Saved Places'}</name>
     <description>Exported places with custom styles</description>
     ${generateStyleXML(KML_STYLES.map.default)}
     ${generateStyleXML(KML_STYLES.map.historical)}
     ${typeStylesXML}`;
   
-  //console.log('\n📝 KML Header generated with all styles');
 
-  // We don't need this section anymore as we're using KML_STYLES
+
+
 
   // Helper function to determine if a place is historical/cultural
   const isHistoricalPlace = (place) => {
@@ -601,11 +507,6 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
     
     // Determine which style to use
     let style;
-    //console.log(`\n🔍 Processing place: "${place.name}"`, {
-    //  type: place.type,
-    //  isHistorical: isHistoricalPlace(place),
-    //  hasTypeStyle: !!typeStyles[place.type]
-    //});
     
     if (isHistoricalPlace(place)) {
       style = KML_STYLES.map.historical;
@@ -617,7 +518,6 @@ console.log('SCRIPT START: content-mymaps.js is being executed');
       style = KML_STYLES.map.default;
       logger.debug('Style selection', { place: place.name, style: 'default' });
     }
-    //console.log('  → Selected style:', style);
     
     const description = [
       `<strong>Type:</strong> ${place.type}`,
