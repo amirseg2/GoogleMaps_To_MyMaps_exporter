@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Google Maps to My Maps Sync",
+  "version": "1.0",
+  "description": "Export saved places from Google Maps and import to My Maps with enrichment.",
+  "permissions": ["storage", "scripting", "tabs", "activeTab"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "host_permissions": [
+    "https://www.google.com/maps/*",
+    "https://www.google.com/mymaps/*"
+  ]
+}
